@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local credentials and Compose overrides
+.env
+.env.*
+!.env.example
+compose.override.yml

@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+**/target
+gym-management
+.idea
+.vscode
+docs
+jira
