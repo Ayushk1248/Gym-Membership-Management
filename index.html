@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elite Fitness | DBMS Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand-title">Elite Fitness</div>
+    <button class="nav-btn active" onclick="switchTab('view-dashboard', this)">⌘ Database Overview</button>
+    <button class="nav-btn" onclick="switchTab('view-members', this)">👥 Member Directory</button>
+    <button class="nav-btn" onclick="switchTab('view-subscriptions', this)">💳 Subscriptions Table</button>
+    <button class="nav-btn" onclick="switchTab('view-trainers', this)">🏋️ Trainers & Staff</button>
+  </aside>
+
+  <main class="main-area">
+    <div class="top-bar">
+      <div>
+        <div style="color: var(--gold-solid); font-size: 13px; letter-spacing: 1px; margin-bottom: 4px;">DBMS MINI PROJECT</div>
+        <h1 class="page-title" id="page-title">Database Overview</h1>
+      </div>
+      <div class="admin-profile">System Admin: <span>Ayush Kushwaha</span></div>
+    </div>
+
+    <div id="view-dashboard" class="view-section active">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-title">Database Status</div><div class="stat-value" style="color: #2ed573;">Online</div></div>
+        <div class="stat-card"><div class="stat-title">Backend API</div><div class="stat-value" style="color: #2ed573;">Connected</div></div>
+      </div>
+      <div class="table-section">
+        <h3 style="margin-bottom: 15px; color: var(--gold-solid);">Welcome to the Elite Fitness DBMS</h3>
+        <p style="color: var(--text-muted); font-size: 14px;">Use the sidebar navigation to perform Create, Read, Update, and Delete (CRUD) operations on your SQL database tables.</p>
+      </div>
+    </div>
+
+    <div id="view-members" class="view-section">
+      <div class="table-section">
+        <div class="toolbar">
+          <input type="text" id="searchInput" class="search-input" placeholder="Search Members Table by Name or ID..." onkeyup="filterTable()">
+          <button class="btn-gold" onclick="openModal()">+ Insert Member</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Member_ID (PK)</th><th>Full_Name</th><th>Active Plan (FK)</th><th>Status</th><th>Join Date</th><th>SQL Actions</th></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-subscriptions" class="view-section">
+      <div class="table-section">
+        <div class="toolbar">
+          <input type="text" id="searchPlans" class="search-input" placeholder="Search Plans Table..." onkeyup="filterPlans()">
+          <button class="btn-gold" onclick="openPlanModal()">+ Create Plan</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Plan_ID (PK)</th><th>Plan_Name</th><th>Duration (Months)</th><th>Price (INR)</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="planTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-trainers" class="view-section">
+      <div class="table-section">
+        <div class="toolbar">
+          <input type="text" id="searchStaff" class="search-input" placeholder="Search Staff Table..." onkeyup="filterStaff()">
+          <button class="btn-gold" onclick="openStaffModal()">+ Add Staff</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Staff_ID (PK)</th><th>Staff_Name</th><th>Specialization</th><th>Shift_Timing</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="staffTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="dbModal">
+    <div class="modal-box">
+      <h2>Execute INSERT Query</h2>
+      <form onsubmit="saveRecord(); return false;">
+        <div class="input-group"><label>Member ID</label><input type="text" id="newMemId" required placeholder="e.g. ELT-006"></div>
+        <div class="input-group"><label>Full Name</label><input type="text" id="newMemName" required placeholder="e.g. John Doe"></div>
+        <div class="input-group">
+          <label>Subscription Plan (FK)</label>
+          <select id="newMemPlan"><option value="PLN-1">Annual Pro VIP</option><option value="PLN-2">Monthly Basic</option><option value="PLN-3">Quarterly Elite</option></select>
+        </div>
+        <div class="input-group">
+          <label>Membership Status</label>
+          <select id="newMemStatus"><option value="Active">Active</option><option value="Expired">Expired</option></select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-action" style="padding: 12px;" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Insert Data</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+      <h2>Execute UPDATE Query</h2>
+      <form onsubmit="submitUpdate(); return false;">
+        <div class="input-group"><label>Member ID (PK - Read Only)</label><input type="text" id="editMemId" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted);"></div>
+        <div class="input-group"><label>Full Name</label><input type="text" id="editMemName" required></div>
+        <div class="input-group">
+          <label>Subscription Plan (FK)</label>
+          <select id="editMemPlan"><option value="PLN-1">Annual Pro VIP</option><option value="PLN-2">Monthly Basic</option><option value="PLN-3">Quarterly Elite</option></select>
+        </div>
+        <div class="input-group">
+          <label>Membership Status</label>
+          <select id="editMemStatus"><option value="Active">Active</option><option value="Expired">Expired</option></select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-action" style="padding: 12px;" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Update Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="planModal">
+    <div class="modal-box">
+      <h2 id="planModalTitle">Execute Plan Query</h2>
+      <form onsubmit="savePlan(); return false;">
+        <div class="input-group"><label>Plan ID (PK)</label><input type="text" id="planIdInput" required placeholder="e.g. PLN-4"></div>
+        <div class="input-group"><label>Plan Name</label><input type="text" id="planNameInput" required placeholder="e.g. Summer Special"></div>
+        <div class="input-group"><label>Duration (Months)</label><input type="number" id="planDurationInput" required></div>
+        <div class="input-group"><label>Price (INR)</label><input type="number" id="planPriceInput" required></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-action" style="padding: 12px;" onclick="closePlanModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Insert Data</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="staffModal">
+    <div class="modal-box">
+      <h2 id="staffModalTitle">Execute Staff Query</h2>
+      <form onsubmit="saveStaff(); return false;">
+        <div class="input-group"><label>Staff ID (PK)</label><input type="text" id="staffIdInput" required placeholder="e.g. STF-103"></div>
+        <div class="input-group"><label>Full Name</label><input type="text" id="staffNameInput" required></div>
+        <div class="input-group"><label>Specialization</label><input type="text" id="staffSpecInput" required></div>
+        <div class="input-group"><label>Shift Timing</label><input type="text" id="staffShiftInput" required placeholder="e.g. Morning (6AM-2PM)"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-action" style="padding: 12px;" onclick="closeStaffModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Insert Data</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
