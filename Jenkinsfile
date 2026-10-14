@@ -32,16 +32,17 @@ pipeline {
                 script {
                     def containerName = "gymms-test-${env.BUILD_NUMBER}"
                     bat 'if not exist target mkdir target'
+                    bat 'if exist target\\ci-surefire-reports rmdir /s /q target\\ci-surefire-reports'
                     bat "docker create --name ${containerName} gymms-test:${env.BUILD_NUMBER}"
                     def testResult = bat(returnStatus: true,
                         script: "docker start --attach ${containerName}")
                     def reportResult = bat(returnStatus: true,
-                        script: "docker cp ${containerName}:/workspace/target/surefire-reports target\\surefire-reports")
+                        script: "docker cp ${containerName}:/workspace/target/surefire-reports target\\ci-surefire-reports")
                     bat(returnStatus: true, script: "docker rm -f ${containerName}")
                     if (reportResult != 0) {
                         error('Unable to retrieve Surefire test reports from the test container.')
                     }
-                    junit testResults: 'target/surefire-reports/TEST-*.xml', allowEmptyResults: false
+                    junit testResults: 'target/ci-surefire-reports/TEST-*.xml', allowEmptyResults: false
                     if (testResult != 0) {
                         error('Unit tests failed.')
                     }
@@ -78,7 +79,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'target/surefire-reports/*.xml', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'target/ci-surefire-reports/TEST-*.xml', allowEmptyArchive: true
         }
     }
 }

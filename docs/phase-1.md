@@ -20,7 +20,7 @@ Port 8080 must be available first. If your IDE is running the app on 8080, stop 
 
 Open http://localhost:8080/ for the existing frontend. The frontend uses relative /api URLs on the same origin. The final Compose app port is 8080. Health includes the database check. Metrics expose JVM and HTTP metrics plus gym_members_count, gym_members_active, gym_plans_count, and gym_staff_count. The four custom gauges query existing tables at scrape time; they are current record counts, not cumulative counters. No payment or attendance functionality is introduced.
 
-The application seeds three subscription plans (Monthly, Quarterly, and Yearly) only when the plans table is empty; redeploying never overwrites existing plans. The member form loads its plan choices from the API. CRUD validation errors appear in the frontend instead of failing silently.
+Compose enables idempotent sample data for Monthly, Quarterly, and Yearly plans, four linked active members, and six staff. Missing sample records are added on startup; existing records and user edits are retained. The member form loads its plan choices from the API. CRUD validation errors appear in the frontend instead of failing silently.
 
 The production image runs Java 21 as UID 10001 and checks /health. CI tests run in the Docker test image with an isolated H2 database, so no local MySQL or credentials are needed. The retained context-load test is supplemented by focused member, plan, and staff API tests. `pipelineRevertDemoRejectsMembersWithoutAnExistingPlan` is the named test used to demonstrate a failed build followed by a Git revert.
 
