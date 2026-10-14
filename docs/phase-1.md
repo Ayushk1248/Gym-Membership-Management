@@ -22,7 +22,7 @@ Open http://localhost:8080/ for the existing frontend. The frontend intentionall
 
 The production image runs Java 21 as UID 10001 and checks /health. Its package step skips tests; the separate test target runs Maven tests in CI. H2 test configuration and focused tests are scheduled for Phase 3; the test target is not yet DB-independent.
 
-Prometheus, Grafana, and node-exporter are declared under the monitoring profile for Phase 1. Phase 2 adds scrape/dashboard provisioning and enables them by default. They run exclusively as Docker images. On Windows Docker Desktop, node-exporter observes the Linux Docker VM, not native Windows host metrics.
+Phase 2 now enables Prometheus, Grafana, and node-exporter by default with scrape/dashboard provisioning; see phase-2.md. They run exclusively as Docker images. On Windows Docker Desktop, node-exporter observes the Linux Docker VM, not native Windows host metrics.
 
 Actuator path mapping follows https://docs.spring.io/spring-boot/reference/actuator/monitoring.html . Linux node-exporter container setup follows https://github.com/prometheus/node_exporter .
 
