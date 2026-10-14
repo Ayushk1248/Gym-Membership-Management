@@ -8,6 +8,7 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     environment:
+      GYM_SEED_PLANS: "true"
       DB_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE:-gym_management}
       DB_USERNAME: ${MYSQL_USER:-gymapp}
       DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}

@@ -1,118 +1,104 @@
-// ==========================================
-// 1. MEMBERS LOGIC
-// ==========================================
-let liveData = [];
-function fetchMembers() {
-    fetch('http://localhost:8080/api/members').then(res => res.json()).then(data => { liveData = data; renderTable(liveData); }).catch(e => console.error("API Error:", e));
+// Same-origin API requests work on any host/port serving this app.
+let liveData = [], livePlans = [], liveStaff = [];
+let isPlanEdit = false, isStaffEdit = false;
+const el = id => document.getElementById(id);
+const value = id => el(id).value.trim();
+const show = id => el(id).style.display = 'flex';
+const hide = id => el(id).style.display = 'none';
+function showError(error) {
+    el('apiError').textContent = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+    el('apiError').hidden = false;
 }
-function renderTable(data) {
-    const tbody = document.getElementById('tableBody');
-    if (!tbody) return; tbody.innerHTML = "";
-    data.forEach(row => {
-        let statusClass = row.status === 'Active' ? 'status-active' : 'status-expired';
-        let planName = row.plan ? row.plan.planName : "No Plan";
-        let planId = row.plan ? row.plan.planId : "PLN-1";
-        tbody.innerHTML += `<tr>
-            <td class="id-col">${row.memberId}</td><td style="font-weight: 500;">${row.fullName}</td>
-            <td style="color: var(--text-muted);">${planName}</td><td><span class="status-badge ${statusClass}">${row.status}</span></td>
-            <td style="color: var(--text-muted);">${row.joinDate}</td>
-            <td><button class="btn-action btn-crud" onclick="openEditModal('${row.memberId}', '${row.fullName}', '${planId}', '${row.status}')">UPDATE</button>
-            <button class="btn-action btn-crud" onclick="deleteRecord('${row.memberId}')">DELETE</button></td></tr>`;
+function run(action) {
+    el('apiError').hidden = true;
+    return Promise.resolve().then(action).catch(showError);
+}
+async function api(path, method = 'GET', data) {
+    const response = await fetch('/api/' + path, {
+        method, headers: data ? {'Content-Type': 'application/json'} : {},
+        body: data ? JSON.stringify(data) : undefined
+    });
+    const text = await response.text();
+    let body; try { body = text ? JSON.parse(text) : null; } catch { body = null; }
+    if (!response.ok) throw new Error(body?.detail || body?.message || `Request failed (${response.status}). Check the data and try again.`);
+    return body;
+}
+function renderRows(id, rows, fields, update, remove) {
+    const tbody = el(id); tbody.replaceChildren();
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        fields.forEach(field => { const td = document.createElement('td'); td.textContent = field(row) ?? ''; tr.appendChild(td); });
+        const actions = document.createElement('td');
+        for (const [label, action] of [['UPDATE', update], ['DELETE', remove]]) {
+            const button = document.createElement('button'); button.type = 'button';
+            button.className = 'btn-action btn-crud'; button.textContent = label;
+            button.addEventListener('click', () => action(row)); actions.appendChild(button);
+        }
+        tr.appendChild(actions); tbody.appendChild(tr);
     });
 }
-function filterTable() {
-    let q = document.getElementById("searchInput").value.toLowerCase();
-    renderTable(liveData.filter(user => user.fullName.toLowerCase().includes(q) || user.memberId.toLowerCase().includes(q)));
+function renderTable(rows) {
+    renderRows('tableBody', rows, [r=>r.memberId,r=>r.fullName,r=>r.plan?.planName || 'No Plan',r=>r.status,r=>r.joinDate],
+        r=>openEditModal(r.memberId,r.fullName,r.plan?.planId || '',r.status), r=>deleteRecord(r.memberId));
 }
-function openModal() { document.getElementById('dbModal').style.display = 'flex'; }
-function closeModal() { document.getElementById('dbModal').style.display = 'none'; }
-function saveRecord() { 
-    const newMemberData = { memberId: document.getElementById('newMemId').value, fullName: document.getElementById('newMemName').value, status: document.getElementById('newMemStatus').value, joinDate: new Date().toISOString().split('T')[0], plan: { planId: document.getElementById('newMemPlan').value } };
-    fetch('http://localhost:8080/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newMemberData) }).then(() => { closeModal(); fetchMembers(); });
+async function fetchMembers() { liveData = await api('members'); filterTable(); }
+function filterTable() { const q=value('searchInput').toLowerCase(); renderTable(liveData.filter(r=>(r.fullName+' '+r.memberId).toLowerCase().includes(q))); }
+function updatePlanOptions() {
+    for (const id of ['newMemPlan','editMemPlan']) {
+        const select=el(id), previous=select.value; select.replaceChildren();
+        const empty=new Option(livePlans.length ? 'Select a plan' : 'Create a plan first', ''); select.add(empty);
+        livePlans.forEach(p=>select.add(new Option(p.planName+' ('+p.planId+')',p.planId)));
+        if (livePlans.some(p=>p.planId===previous)) select.value=previous;
+    }
 }
-function openEditModal(id, name, planId, status) {
-    document.getElementById('editMemId').value = id; document.getElementById('editMemName').value = name; document.getElementById('editMemPlan').value = planId; document.getElementById('editMemStatus').value = status; document.getElementById('editModal').style.display = 'flex';
+function openModal() { return run(async()=>{await fetchPlans(); show('dbModal');}); }
+function closeModal() { hide('dbModal'); }
+function saveRecord() { return run(async()=>{
+    if(!value('newMemPlan')) throw new Error('Select an existing subscription plan.');
+    await api('members','POST',{memberId:value('newMemId'),fullName:value('newMemName'),status:value('newMemStatus'),plan:{planId:value('newMemPlan')}});
+    closeModal(); el('dbModal').querySelector('form').reset(); await fetchMembers();
+}); }
+function openEditModal(id,name,planId,status) { return run(async()=>{
+    await fetchPlans(); el('editMemId').value=id; el('editMemName').value=name; el('editMemPlan').value=planId; el('editMemStatus').value=status; show('editModal');
+}); }
+function closeEditModal() { hide('editModal'); }
+function submitUpdate() { return run(async()=>{
+    if(!value('editMemPlan')) throw new Error('Select an existing subscription plan.');
+    await api('members/'+encodeURIComponent(value('editMemId')),'PUT',{fullName:value('editMemName'),status:value('editMemStatus'),plan:{planId:value('editMemPlan')}});
+    closeEditModal(); await fetchMembers();
+}); }
+function deleteRecord(id) { if(confirm('Delete member '+id+'?')) return run(async()=>{await api('members/'+encodeURIComponent(id),'DELETE');await fetchMembers();}); }
+async function fetchPlans() { livePlans=await api('plans');filterPlans();updatePlanOptions(); }
+function renderPlansTable(rows) { renderRows('planTableBody',rows,[r=>r.planId,r=>r.planName,r=>r.durationMonths,r=>'₹ '+r.price],r=>openPlanModal(r.planId,r.planName,r.durationMonths,r.price),r=>deletePlan(r.planId)); }
+function filterPlans() {const q=value('searchPlans').toLowerCase();renderPlansTable(livePlans.filter(r=>(r.planName+' '+r.planId).toLowerCase().includes(q)));}
+function openPlanModal(id='',name='',duration='',price='') {
+    isPlanEdit=id!=='';el('planModalTitle').textContent=isPlanEdit?'UPDATE Plan':'INSERT Plan';
+    el('planModal').querySelector('button[type="submit"]').textContent=isPlanEdit?'Update Plan':'Insert Data';
+    el('planIdInput').value=id;el('planIdInput').readOnly=isPlanEdit;el('planNameInput').value=name;el('planDurationInput').value=duration;el('planPriceInput').value=price;show('planModal');
 }
-function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-function submitUpdate() {
-    const idToUpdate = document.getElementById('editMemId').value;
-    const updatedData = { fullName: document.getElementById('editMemName').value, status: document.getElementById('editMemStatus').value, joinDate: new Date().toISOString().split('T')[0], plan: { planId: document.getElementById('editMemPlan').value } };
-    fetch('http://localhost:8080/api/members/' + idToUpdate, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedData) }).then(() => { closeEditModal(); fetchMembers(); });
+function closePlanModal(){hide('planModal');}
+function savePlan(){return run(async()=>{
+    const data={planId:value('planIdInput'),planName:value('planNameInput'),durationMonths:Number(value('planDurationInput')),price:Number(value('planPriceInput'))};
+    if(data.durationMonths<=0 || data.price<0) throw new Error('Duration must be positive and price cannot be negative.');
+    await api('plans'+(isPlanEdit?'/'+encodeURIComponent(data.planId):''),isPlanEdit?'PUT':'POST',data);
+    closePlanModal();await fetchPlans();await fetchMembers();
+});}
+function deletePlan(id){if(confirm('Delete plan '+id+'? Plans used by members cannot be deleted.'))return run(async()=>{await api('plans/'+encodeURIComponent(id),'DELETE');await fetchPlans();});}
+async function fetchStaff(){liveStaff=await api('staff');filterStaff();}
+function renderStaffTable(rows){renderRows('staffTableBody',rows,[r=>r.staffId,r=>r.staffName,r=>r.specialization,r=>r.shiftTiming],r=>openStaffModal(r.staffId,r.staffName,r.specialization,r.shiftTiming),r=>deleteStaff(r.staffId));}
+function filterStaff(){const q=value('searchStaff').toLowerCase();renderStaffTable(liveStaff.filter(r=>(r.staffName+' '+r.staffId).toLowerCase().includes(q)));}
+function openStaffModal(id='',name='',spec='',shift=''){
+    isStaffEdit=id!=='';el('staffModalTitle').textContent=isStaffEdit?'UPDATE Staff':'INSERT Staff';el('staffModal').querySelector('button[type="submit"]').textContent=isStaffEdit?'Update Staff':'Insert Data';el('staffIdInput').value=id;el('staffIdInput').readOnly=isStaffEdit;el('staffNameInput').value=name;el('staffSpecInput').value=spec;el('staffShiftInput').value=shift;show('staffModal');
 }
-function deleteRecord(id) {
-    if(confirm(`DELETE FROM Members WHERE Member_ID = '${id}'?`)) { fetch('http://localhost:8080/api/members/' + id, { method: 'DELETE' }).then(() => fetchMembers()); }
+function closeStaffModal(){hide('staffModal');}
+function saveStaff(){return run(async()=>{
+    const data={staffId:value('staffIdInput'),staffName:value('staffNameInput'),specialization:value('staffSpecInput'),shiftTiming:value('staffShiftInput')};
+    await api('staff'+(isStaffEdit?'/'+encodeURIComponent(data.staffId):''),isStaffEdit?'PUT':'POST',data);closeStaffModal();await fetchStaff();
+});}
+function deleteStaff(id){if(confirm('Delete staff '+id+'?'))return run(async()=>{await api('staff/'+encodeURIComponent(id),'DELETE');await fetchStaff();});}
+function switchTab(viewId,clickedBtn){
+    document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.remove('active'));clickedBtn.classList.add('active');
+    document.querySelectorAll('.view-section').forEach(view=>view.classList.remove('active'));el(viewId).classList.add('active');
+    el('page-title').textContent={'view-dashboard':'Database Overview','view-members':'Member Directory (Members Table)','view-subscriptions':'Subscriptions (Plans Table)','view-trainers':'Staff Assignments (Staff Table)'}[viewId];
 }
-
-// ==========================================
-// 2. PLANS LOGIC
-// ==========================================
-let livePlans = [];
-function fetchPlans() { fetch('http://localhost:8080/api/plans').then(res => res.json()).then(data => { livePlans = data; renderPlansTable(data); }); }
-function renderPlansTable(data) {
-    const tbody = document.getElementById('planTableBody');
-    if (!tbody) return; tbody.innerHTML = "";
-    data.forEach(row => {
-        tbody.innerHTML += `<tr><td class="id-col">${row.planId}</td><td style="font-weight: 500;">${row.planName}</td><td style="color: var(--text-muted);">${row.durationMonths}</td><td style="color: var(--text-muted);">₹ ${row.price}</td>
-            <td><button class="btn-action btn-crud" onclick="openPlanModal('${row.planId}', '${row.planName}', ${row.durationMonths}, ${row.price})">UPDATE</button><button class="btn-action btn-crud" onclick="deletePlan('${row.planId}')">DELETE</button></td></tr>`;
-    });
-}
-let isPlanEdit = false;
-function openPlanModal(id = '', name = '', duration = '', price = '') {
-    isPlanEdit = id !== ''; document.getElementById('planModalTitle').textContent = isPlanEdit ? "UPDATE Plan" : "INSERT Plan";
-    document.getElementById('planIdInput').value = id; document.getElementById('planIdInput').readOnly = isPlanEdit; document.getElementById('planNameInput').value = name; document.getElementById('planDurationInput').value = duration; document.getElementById('planPriceInput').value = price; document.getElementById('planModal').style.display = 'flex';
-}
-function closePlanModal() { document.getElementById('planModal').style.display = 'none'; }
-function savePlan() {
-    const planData = { planId: document.getElementById('planIdInput').value, planName: document.getElementById('planNameInput').value, durationMonths: document.getElementById('planDurationInput').value, price: document.getElementById('planPriceInput').value };
-    const url = isPlanEdit ? 'http://localhost:8080/api/plans/' + planData.planId : 'http://localhost:8080/api/plans';
-    fetch(url, { method: isPlanEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(planData) }).then(() => { closePlanModal(); fetchPlans(); });
-}
-function deletePlan(id) { if(confirm(`WARNING: Deleting a Plan breaks connected Members! Delete ${id}?`)) { fetch('http://localhost:8080/api/plans/' + id, { method: 'DELETE' }).then(() => fetchPlans()); } }
-function filterPlans() { let q = document.getElementById("searchPlans").value.toLowerCase(); renderPlansTable(livePlans.filter(p => p.planName.toLowerCase().includes(q) || p.planId.toLowerCase().includes(q))); }
-// 3. STAFF LOGIC
-
-let liveStaff = [];
-function fetchStaff() { fetch('http://localhost:8080/api/staff').then(res => res.json()).then(data => { liveStaff = data; renderStaffTable(data); }); }
-function renderStaffTable(data) {
-    const tbody = document.getElementById('staffTableBody');
-    if (!tbody) return; tbody.innerHTML = "";
-    data.forEach(row => {
-        tbody.innerHTML += `<tr><td class="id-col">${row.staffId}</td><td style="font-weight: 500;">${row.staffName}</td><td style="color: var(--text-muted);">${row.specialization}</td><td style="color: var(--text-muted);">${row.shiftTiming}</td>
-            <td><button class="btn-action btn-crud" onclick="openStaffModal('${row.staffId}', '${row.staffName}', '${row.specialization}', '${row.shiftTiming}')">UPDATE</button><button class="btn-action btn-crud" onclick="deleteStaff('${row.staffId}')">DELETE</button></td></tr>`;
-    });
-}
-let isStaffEdit = false;
-function openStaffModal(id = '', name = '', spec = '', shift = '') {
-    isStaffEdit = id !== ''; document.getElementById('staffModalTitle').textContent = isStaffEdit ? "UPDATE Staff" : "INSERT Staff";
-    document.getElementById('staffIdInput').value = id; document.getElementById('staffIdInput').readOnly = isStaffEdit; document.getElementById('staffNameInput').value = name; document.getElementById('staffSpecInput').value = spec; document.getElementById('staffShiftInput').value = shift; document.getElementById('staffModal').style.display = 'flex';
-}
-function closeStaffModal() { document.getElementById('staffModal').style.display = 'none'; }
-function saveStaff() {
-    const staffData = { staffId: document.getElementById('staffIdInput').value, staffName: document.getElementById('staffNameInput').value, specialization: document.getElementById('staffSpecInput').value, shiftTiming: document.getElementById('staffShiftInput').value };
-    const url = isStaffEdit ? 'http://localhost:8080/api/staff/' + staffData.staffId : 'http://localhost:8080/api/staff';
-    fetch(url, { method: isStaffEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(staffData) }).then(() => { closeStaffModal(); fetchStaff(); });
-}
-function deleteStaff(id) { if(confirm(`DELETE FROM Staff WHERE Staff_ID = '${id}'?`)) { fetch('http://localhost:8080/api/staff/' + id, { method: 'DELETE' }).then(() => fetchStaff()); } }
-function filterStaff() { let q = document.getElementById("searchStaff").value.toLowerCase(); renderStaffTable(liveStaff.filter(s => s.staffName.toLowerCase().includes(q) || s.staffId.toLowerCase().includes(q))); }
-
-// ==========================================
-// 4. VIEW NAVIGATION & INITIALIZATION
-// ==========================================
-function switchTab(viewId, clickedBtn) {
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    clickedBtn.classList.add('active');
-    document.querySelectorAll('.view-section').forEach(view => view.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
-    const title = document.getElementById('page-title');
-    if(viewId === 'view-dashboard') title.textContent = "Database Overview";
-    if(viewId === 'view-members') title.textContent = "Member Directory (Members Table)";
-    if(viewId === 'view-subscriptions') title.textContent = "Subscriptions (Plans Table)";
-    if(viewId === 'view-trainers') title.textContent = "Staff Assignments (Staff Table)";
-}
-
-// Run this the second the page loads
-window.onload = () => { 
-    fetchMembers(); 
-    fetchPlans();
-    fetchStaff();
-};
+window.onload=()=>run(()=>Promise.all([fetchMembers(),fetchPlans(),fetchStaff()]));

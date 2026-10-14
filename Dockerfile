@@ -12,7 +12,7 @@ FROM source AS test
 CMD ["./mvnw", "-B", "-ntp", "test", "-Dspring.profiles.active=test"]
 
 FROM source AS build
-RUN ./mvnw -B -ntp -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -ntp -DskipTests package
 
 FROM eclipse-temurin:21-jre-jammy AS production
 RUN apt-get update && apt-get install -y --no-install-recommends curl \

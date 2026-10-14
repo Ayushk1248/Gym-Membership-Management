@@ -38,7 +38,7 @@ docker compose restart prometheus
 
 Grafana provisions the Prometheus datasource (UID gymms-prometheus) and GymMS Overview dashboard (UID gymms-overview) from the monitoring/grafana directory. The datasource uses the internal Compose URL http://prometheus:9090, not localhost. Dashboard JSON is the source of truth; edit it in Git. Grafana scans for changes every 30 seconds. Datasource changes require a Grafana restart.
 
-The dashboard has ten panels: app scrape status, API request rate, API p95 latency, Linux VM CPU/memory/disk usage, member records, active members, subscription plans, and staff records. Scrape status means metrics are reachable; /health independently verifies DB readiness. Zero gym counts are valid for a new empty database.
+The dashboard has ten panels: app scrape status, API request rate, API p95 latency, Linux VM CPU/memory/disk usage, member records, active members, subscription plans, and staff records. Scrape status means metrics are reachable; /health independently verifies DB readiness. A fresh database has sample plans but no members or staff until they are added in the app.
 
 On Windows, node-exporter measures the Linux VM running Docker Desktop, not native Windows CPU, memory, or C: drive space. Disk series are per persistent Linux block device, deduplicated across bind mounts. No payment or attendance metrics are invented.
 

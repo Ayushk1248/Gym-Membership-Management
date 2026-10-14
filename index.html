@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elite Fitness | DBMS Dashboard</title>
+  <title>Elite Fitness | ASD&amp;D Mini Project</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
@@ -19,9 +19,10 @@
   </aside>
 
   <main class="main-area">
+    <div id="apiError" role="alert" hidden style="position:fixed;top:12px;right:12px;z-index:9999;max-width:540px;background:#171717;color:#ff6b6b;padding:12px;border:1px solid #ff6b6b"></div>
     <div class="top-bar">
       <div>
-        <div style="color: var(--gold-solid); font-size: 13px; letter-spacing: 1px; margin-bottom: 4px;">DBMS MINI PROJECT</div>
+        <div style="color: var(--gold-solid); font-size: 13px; letter-spacing: 1px; margin-bottom: 4px;">ASD&amp;D Mini Project</div>
         <h1 class="page-title" id="page-title">Database Overview</h1>
       </div>
       <div class="admin-profile">System Admin: <span>Ayush Kushwaha</span></div>
@@ -33,7 +34,7 @@
         <div class="stat-card"><div class="stat-title">Backend API</div><div class="stat-value" style="color: #2ed573;">Connected</div></div>
       </div>
       <div class="table-section">
-        <h3 style="margin-bottom: 15px; color: var(--gold-solid);">Welcome to the Elite Fitness DBMS</h3>
+        <h3 style="margin-bottom: 15px; color: var(--gold-solid);">Welcome to the Elite Fitness Gym Management</h3>
         <p style="color: var(--text-muted); font-size: 14px;">Use the sidebar navigation to perform Create, Read, Update, and Delete (CRUD) operations on your SQL database tables.</p>
       </div>
     </div>
@@ -88,14 +89,14 @@
     <div class="modal-box">
       <h2>Execute INSERT Query</h2>
       <form onsubmit="saveRecord(); return false;">
-        <div class="input-group"><label>Member ID</label><input type="text" id="newMemId" required placeholder="e.g. ELT-006"></div>
-        <div class="input-group"><label>Full Name</label><input type="text" id="newMemName" required placeholder="e.g. John Doe"></div>
+        <div class="input-group"><label for="newMemId">Member ID</label><input type="text" id="newMemId" required placeholder="e.g. ELT-006"></div>
+        <div class="input-group"><label for="newMemName">Full Name</label><input type="text" id="newMemName" required placeholder="e.g. John Doe"></div>
         <div class="input-group">
-          <label>Subscription Plan (FK)</label>
-          <select id="newMemPlan"><option value="PLN-1">Annual Pro VIP</option><option value="PLN-2">Monthly Basic</option><option value="PLN-3">Quarterly Elite</option></select>
+          <label for="newMemPlan">Subscription Plan (FK)</label>
+          <select id="newMemPlan" required></select>
         </div>
         <div class="input-group">
-          <label>Membership Status</label>
+          <label for="newMemStatus">Membership Status</label>
           <select id="newMemStatus"><option value="Active">Active</option><option value="Expired">Expired</option></select>
         </div>
         <div class="modal-actions">
@@ -110,14 +111,14 @@
     <div class="modal-box">
       <h2>Execute UPDATE Query</h2>
       <form onsubmit="submitUpdate(); return false;">
-        <div class="input-group"><label>Member ID (PK - Read Only)</label><input type="text" id="editMemId" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted);"></div>
-        <div class="input-group"><label>Full Name</label><input type="text" id="editMemName" required></div>
+        <div class="input-group"><label for="editMemId">Member ID (PK - Read Only)</label><input type="text" id="editMemId" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted);"></div>
+        <div class="input-group"><label for="editMemName">Full Name</label><input type="text" id="editMemName" required></div>
         <div class="input-group">
-          <label>Subscription Plan (FK)</label>
-          <select id="editMemPlan"><option value="PLN-1">Annual Pro VIP</option><option value="PLN-2">Monthly Basic</option><option value="PLN-3">Quarterly Elite</option></select>
+          <label for="editMemPlan">Subscription Plan (FK)</label>
+          <select id="editMemPlan" required></select>
         </div>
         <div class="input-group">
-          <label>Membership Status</label>
+          <label for="editMemStatus">Membership Status</label>
           <select id="editMemStatus"><option value="Active">Active</option><option value="Expired">Expired</option></select>
         </div>
         <div class="modal-actions">
@@ -132,10 +133,10 @@
     <div class="modal-box">
       <h2 id="planModalTitle">Execute Plan Query</h2>
       <form onsubmit="savePlan(); return false;">
-        <div class="input-group"><label>Plan ID (PK)</label><input type="text" id="planIdInput" required placeholder="e.g. PLN-4"></div>
-        <div class="input-group"><label>Plan Name</label><input type="text" id="planNameInput" required placeholder="e.g. Summer Special"></div>
-        <div class="input-group"><label>Duration (Months)</label><input type="number" id="planDurationInput" required></div>
-        <div class="input-group"><label>Price (INR)</label><input type="number" id="planPriceInput" required></div>
+        <div class="input-group"><label for="planIdInput">Plan ID (PK)</label><input type="text" id="planIdInput" required placeholder="e.g. PLN-4"></div>
+        <div class="input-group"><label for="planNameInput">Plan Name</label><input type="text" id="planNameInput" required placeholder="e.g. Summer Special"></div>
+        <div class="input-group"><label for="planDurationInput">Duration (Months)</label><input type="number" id="planDurationInput" required></div>
+        <div class="input-group"><label for="planPriceInput">Price (INR)</label><input type="number" id="planPriceInput" required></div>
         <div class="modal-actions">
           <button type="button" class="btn-action" style="padding: 12px;" onclick="closePlanModal()">Cancel</button>
           <button type="submit" class="btn-gold">Insert Data</button>
@@ -148,10 +149,10 @@
     <div class="modal-box">
       <h2 id="staffModalTitle">Execute Staff Query</h2>
       <form onsubmit="saveStaff(); return false;">
-        <div class="input-group"><label>Staff ID (PK)</label><input type="text" id="staffIdInput" required placeholder="e.g. STF-103"></div>
-        <div class="input-group"><label>Full Name</label><input type="text" id="staffNameInput" required></div>
-        <div class="input-group"><label>Specialization</label><input type="text" id="staffSpecInput" required></div>
-        <div class="input-group"><label>Shift Timing</label><input type="text" id="staffShiftInput" required placeholder="e.g. Morning (6AM-2PM)"></div>
+        <div class="input-group"><label for="staffIdInput">Staff ID (PK)</label><input type="text" id="staffIdInput" required placeholder="e.g. STF-103"></div>
+        <div class="input-group"><label for="staffNameInput">Full Name</label><input type="text" id="staffNameInput" required></div>
+        <div class="input-group"><label for="staffSpecInput">Specialization</label><input type="text" id="staffSpecInput" required></div>
+        <div class="input-group"><label for="staffShiftInput">Shift Timing</label><input type="text" id="staffShiftInput" required placeholder="e.g. Morning (6AM-2PM)"></div>
         <div class="modal-actions">
           <button type="button" class="btn-action" style="padding: 12px;" onclick="closeStaffModal()">Cancel</button>
           <button type="submit" class="btn-gold">Insert Data</button>
